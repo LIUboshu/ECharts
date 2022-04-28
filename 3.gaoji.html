@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript" src="https://cdn.staticfile.org/echarts/4.3.0/echarts.min.js"></script>
+        <script src="./jquery1.8.3.min.js"></script>
+        <script src="./js/essos.js"></script>    <!-- 自定义主题 -->
+        <title>Document</title>
+        <script>
+            /* 
+                一.显示相关
+                    1.主题
+                        内置主题
+                            Echarts中默认内置了两套主题:light   dark
+                            在初始化对象方法init中可以指明
+                                var chart = echarts.init(dom,"light");
+                                var chart = echarts.init(dom,"dark");
+                        自定义主题
+                            在主题编辑器中编辑主题      网址:https://echarts.apache.org/zh/theme-builder.html
+                            下载主题,是一个js文件
+                            引入主题js文件
+                            在init方法中使用主题        // 主题名字是根据js文件中    echarts.registerTheme('essos'      第一个参数决定的
+                    2.调色板
+                        主题调色板
+                        全局调色板
+                            var option = {
+                                color:["red","yellow",'blue',"pink","green"]
+                            }
+                        局部调色盘
+                            var option = {
+                                series:[
+                                    {
+                                        color:["pink","yellow",'black',"orange","green"]    //局部调色盘
+                                    }
+                                ]
+                            };
+                            调色盘的作用遵循就近原则
+                        颜色渐变
+                            线性渐变
+                                itemStyle:{
+                                    color: {
+                                        type: 'linear',
+                                        x: 0,
+                                        y: 0,
+                                        x2: 0,
+                                        y2: 1,
+                                        colorStops: [{
+                                            offset: 0, color: 'red' // 0% 处的颜色
+                                        }, {
+                                            offset: 1, color: 'blue' // 100% 处的颜色
+                                        }],
+                                        global: false // 缺省为 false
+                                    }
+                                }
+                            径向渐变
+                            itemStyle:{
+                                color: {
+                                    type: 'radial',
+                                    x: 0.5,
+                                    y: 0.5,
+                                    r: 0.5,
+                                    colorStops: [{
+                                        offset: 0, color: 'red' // 0% 处的颜色
+                                    }, {
+                                        offset: 1, color: 'blue' // 100% 处的颜色
+                                    }],
+                                    global: false // 缺省为 false
+                                }
+                            }   
+                    3.样式
+                            直接样式
+                                itemStyle   textStyle   lineStyle   areaStyle   label
+                            高亮样式
+                                鼠标移到改区域的时候改变
+                                在emphasis包裹itemStyle   textStyle   lineStyle   areaStyle   label
+                            优先级高,会覆盖主题中/调色盘的效果
+                    4.自适应
+                            window.onresize = function(){
+                                // 调用echarts实例对象的resize方法
+                                mCharts.resize();
+                            }
+                            或
+                            window.onresize = mCharts.resize;
+                二.动画的使用
+                    1.加载动画
+                        显示加载动画(获取数据前)
+                            mCharts.showLoading()
+                        隐藏加载动画(获取数据成功后)
+                            mCharts.hideLoading()
+                    2.增量动画
+                        mCharts.setOption
+                            所有数据的更新都通过setOption实现
+                            不同考虑数据到底产生了那些变化
+                            ECharts会找到两组数据之间的差异然后通过核实的动画去表现数据的变化
+
+                        setOption  可以设置多次
+                        新的option 和 旧的option
+                        新旧option的关系并不是相互覆盖的管子,是相互整合的关系
+                        我们在设置新的option的时候,只需要考虑到变化的部分就可以
+                    3.动画的配置
+                            开启动画
+                                animation:true
+                            动画的时长
+                                animationDuration:5000      可以接收回调函数
+                            缓动动画
+                                animationEasing:"bounceOut"   linear均匀的
+                            动画阈值
+                                animationThreshold:8
+                                单种形式的元素数量大于这个阈值时会关闭动画
+                三.交互API
+                    全局echarts对象
+                            全局echarts对象是引入echarts.js文件之后就可以直接使用
+                            init  初始化方法
+                                初始化ECharts实例对象
+                                使用主题
+                            registerTheme   注册主题
+                                注册主题
+                                只有注册过的主题,才能在init方法中使用该主题
+                            registerMap     注册地图
+                                注册地图的数据
+                                    $.get("json/Henan.json",function(ret){
+                                        echarts.registerMap("henan",ret);
+                                    })
+                                geo组件使用地图数据
+                                    var option = {
+                                        geo:{
+                                            type:"map",
+                                            map:"henan"
+                                        }
+                                    };
+                            connect     关联多个图表
+                                一个页面中可以有多个独立的图表
+                                每一个图表对应一个ECharts实例对象
+                                connect可以实现多图关联,传入联动目标为ECharts实例对象,支持数组
+                                保存图片自动拼接
+                                刷新按钮
+                                echarts.connect([mCharts,mCharts2]) //将两个图表关联起来
+                    echartsInstance对象
+                            echartsInstance对象是通过echarts.init方法调用之后得到的
+                            setOption
+                                设置或修改图表实例的配置项以及数据
+                                多次调用setOption方法
+                                    合并新的配置和旧的配置
+                                    增量动画
+                            resize
+                                图表自适应
+                                一般和window独享的resize事件结合使用
+                                window.onresize = function(){
+                                    myChart.resize();
+                                }
+                            on\off
+                                绑定或者解绑事件处理函数
+                                鼠标事件
+                                    click   dblclick   mousedown    mouseup     mouseove
+                                    事件参数arg 和事件相关参数信息
+                                ECharts事件
+                                    legendselectchanged(api文档)
+                                    arg回调函数的参数,和事件相关的新剧信息
+                            dispatchAction
+                                触发某些行为
+                                使用代码模拟用户的行为
+                                mCharts.dispatchAction({
+                                    type: 'highlight',// 事件类型
+                                    seriesIndex: 0,//图表的索引
+                                    // 可选，数据的 index
+                                    dataIndex: 1
+                                })
+                            clear
+                                清空当前实例,慧衣橱实例中所有的组件的图表
+                                清空之后可以再次setOption
+                            dispose
+                                销毁实例
+                                销毁后实例无法再被使用
+            */
+        </script>
+    </head>
+    <body>
+        <div id="div1" style="width: 600px; height: 400px;"></div>
+        <div id="pie" style="width: 600px; height: 400px;"></div>
+        <div id="div2" style="width: 600px; height: 400px;"></div>
+        <button id="btn">修改数据</button>
+    </body>
+    <script type="text/javascript">
+		// var myCharts = echarts.init(document.querySelector("#div1"),"dark"); //内置主题
+        var myCharts = echarts.init(document.querySelector("#div1"),"essos");//自定义主题
+		var xDataArr = ["张三","小明","小红","李四","王五","大强","小强"];
+		var yDaraArr1 = [88,90,50,80,99,65,100];
+		var yDaraArr2 = [68,50,59,40,60,70,60];
+		var option = {
+			dataZoom:[// 区域缩放
+				{
+					type:"slider",// 滑块
+					// type:"inside"
+					xAxisIndex:0 // 产生作用的轴
+				},
+				{
+					type:"slider",
+					yAxisIndex:0,  // 产生作用的轴
+					// start:0,// 初始状态的缩放情况
+					// end:80
+				}
+			],
+			/* grid:{// 网格
+				show:true,//显示网格
+				borderWidth:10, //网格宽度
+				borderColor:"red",// 网格颜色
+				left:120,	// 位置移动
+				top:120,
+				width:300,	//大小的改变
+				height:150
+			}, */
+			title:{
+				text:"成绩展示",
+				link:"https://www.baodu.com",	// link主标题文本超链接。
+				textStyle:{
+					color:"red",//主标题文字的颜色。
+					fontWeight:"bolder"   //主标题文字字体的粗细。
+				}
+			},
+			tooltip:{
+				// trigger:"item"
+				trigger:"axis",
+				// triggerOn:"click"// 点击过才出现提示框
+				// formatter:"{b} 的成绩是 {c}" // 可以自定义  滑动显示数据   字符串
+				formatter:function(arg){
+					// console.log(arg);
+					return arg[0].name + "的成绩是" + arg[0].data;  // formatter 回调函数
+				}
+			},
+			toolbox:{
+				feature:{//各工具配置项。 除了各个内置的工具按钮外，还可以自定义工具按钮。
+					saveAsImage:{},	//导出图片
+					dataView:{},	//数据视图
+					restore:{},	//重置
+					dataZoom:{},		//区域缩放
+					magicType:{
+						type:["bar","line"]
+					}
+				}
+			},
+			legend:{
+				data:["语文","数学"]
+			},
+			// 竖状图
+			xAxis:{
+				type:"category",//数值轴，适用于连续数据。
+				data:xDataArr,
+				position:"top"
+			},
+			yAxis:{
+				type:"value"
+			},
+			// 横状图
+			/* xAxis:{
+				type:"value"
+			},
+			yAxis:{
+				type:"category",
+				data:xDataArr
+			}, */
+			series:[{
+				name:"语文",//系列名称
+				type:"bar",//柱状图（或称条形图）是一种通过柱形的高度
+				markPoint:{
+					data:[
+						{
+							type:"max",name:"最大值"
+						},{
+							type:"min",name:"最小值"
+						}
+					],
+					itemStyle:{	//标注的样式。
+						color:"red",
+						borderColor:"red"
+					}
+				},
+				markLine:{
+					data:[{type:"average",name:"平均值"}]  // 平均值
+				},
+				label:{//图形上的文本标签，可用于说明图形的一些数据信息，比如值，名称等。
+					show:true,
+					rotate:60,	//旋转60度
+					position:"top" //标签的位置
+				},
+				barWidth:"40%",	//柱条的宽度，不设时自适应。
+				data:yDaraArr1	//yAxis的数据来源
+			},{
+				name:"数学",
+				type:"bar",
+				markPoint:{
+					data:[
+						{
+							type:"max",name:"最大值"
+						},{
+							type:"min",name:"最小值"
+						}
+					],
+					itemStyle:{	//标注的样式。
+						color:"blue",
+						borderColor:"blue"
+					}
+				},
+				markLine:{
+					data:[{type:"average",name:"平均值"}]  // 平均值
+				},
+				label:{//图形上的文本标签，可用于说明图形的一些数据信息，比如值，名称等。
+					show:true,
+					rotate:60,	//旋转60度
+					position:"top" //标签的位置
+				},
+				barWidth:"40%",	//柱条的宽度，不设时自适应。
+				data:yDaraArr2
+			}]
+		}
+		myCharts.setOption(option);
+	</script>
+
+    <script type="text/javascript">
+		var data = [{name:"淘宝",value:11231,itemStyle:{color:"blue"},label:{color:"green"}},{name:"京东",value:22673},{name:"唯品会",value:6123},{name:"1号店",value:8989},{name:"聚美优品",value:6700}];
+		var myCharts = echarts.init(document.querySelector("#pie"),"essos");
+		var option = {
+            title:{
+                text:"饼图测试",
+                textStyle:{
+                    color:"blue"
+                }
+            },
+            // color:["red","yellow",'blue',"pink","green"],//全局调色板
+			series:[
+				{
+					type:"pie",
+					data:data,
+					label:{// 饼图文字的显示
+						show:true,	//显示文字
+						formatter:function(arg){
+							// console.log(arg);
+							return arg.name + "平台" + arg.value + "元\n" + arg.percent + '%';
+						}
+					},
+                    emphasis:{
+                        itemStyle:{
+                            color:"pink"
+                        },
+                        label:{
+                            color:"pink"
+                        }
+                    }
+                    // color:["pink","yellow",'black',"orange","green"]    //局部调色盘
+				}
+			]
+		};
+		myCharts.setOption(option);
+	</script>
+
+    <script type="text/javascript">
+        // var myCharts = echarts.init(document.querySelector("#div1"),"dark"); //内置主题
+        var myCharts = echarts.init(document.querySelector("#div2"),"essos");//自定义主题
+        var xDataArr = ["张三","小明","小红","李四","王五","大强","小强"];
+        var yDaraArr1 = [88,90,50,80,99,65,100];
+        var option = {
+            animation:true, //控制动画是否开启
+            // animationDuration:5000,  // 动画的时长,毫秒为单位
+            animationDuration:function(arg){
+                return 1000 * arg
+            },
+            animationEasing:"bounceOut",// 缓动动画 
+            animationThreshold:8,//动画原色的阈值
+            title:{
+                text:"成绩展示",
+                link:"https://www.baodu.com",	// link主标题文本超链接。
+                textStyle:{
+                    color:"red",//主标题文字的颜色。
+                    fontWeight:"bolder"   //主标题文字字体的粗细。
+                }
+            },
+            tooltip:{
+                // formatter:function(arg){
+                //     // console.log(arg);
+                //     return arg[0].name + "的成绩是" + arg[0].data;  // formatter 回调函数
+                // }
+            },
+            legend:{
+                data:["语文","数学"]
+            },
+            // 竖状图
+            xAxis:{
+                type:"category",//数值轴，适用于连续数据。
+                data:xDataArr
+            },
+            yAxis:{
+                type:"value"
+            },
+            series:[{
+                name:"语文",//系列名称
+                type:"bar",//柱状图（或称条形图）是一种通过柱形的高度
+                data:yDaraArr1,	//yAxis的数据来源
+                itemStyle:{
+                    // 线性渐变
+                    color:{
+                        type: 'linear',
+                        x: 0,
+                        y: 0,
+                        x2: 0,
+                        y2: 1,
+                        colorStops: [{
+                            offset: 0, color: 'red' // 0% 处的颜色
+                        }, {
+                            offset: 1, color: 'blue' // 100% 处的颜色
+                        }],
+                        global: false // 缺省为 false
+                    }
+
+                    /* // 径向渐变
+                    color: {
+                        type: 'radial',
+                        x: 0.5,
+                        y: 0.5,
+                        r: 0.5,
+                        colorStops: [{
+                            offset: 0, color: 'red' // 0% 处的颜色
+                        }, {
+                            offset: 1, color: 'blue' // 100% 处的颜色
+                        }],
+                        global: false // 缺省为 false
+                    } */
+                }
+            }]
+        }
+        myCharts.setOption(option);
+        var btn  = document.getElementById("btn");
+        btn.onclick = function(){
+            var newArr = [50,60,80,20,9,62,50];
+            // setOption  可以设置多次
+            // 新的option 和 旧的option
+            // 新旧option的关系并不是相互覆盖的管子,是相互整合的关系
+            // 我们在设置新的option的时候,只需要考虑到变化的部分就可以
+            var option = {
+                series:[{
+                    data:newArr
+                }]
+            }
+            myCharts.dispatchAction({
+                type: 'highlight',// 事件类型
+                seriesIndex: 0,//图表的索引
+                // 可选，数据的 index
+                dataIndex: 1
+            })
+            myCharts.dispatchAction({
+                type: 'showTip',
+                seriesIndex: 0,//图表的索引
+                // 可选，数据的 index
+                dataIndex: 2
+            })
+            myCharts.setOption(option);
+        }
+        myCharts.on("click",function(arg){
+            console.log(arg);
+            alert("点击事件");
+        })
+        myCharts.off("click");// 解绑click事件
+        myCharts.on("legendselectchanged",function(arg){
+            console.log(arg);// true  false
+            alert("legendselectchanged....");
+        })
+    </script>  
+</html>  

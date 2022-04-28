@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="text/javascript" src="https://cdn.staticfile.org/echarts/4.3.0/echarts.min.js"></script>
+        <script src="./jquery1.8.3.min.js"></script>
+        <title>Document</title>
+    </head>
+    <body>
+		<div id="map" style="width: 800px; height: 600px;border: 1px solid black;"></div>
+        <div id="henan" style="width: 800px; height: 600px;border: 1px solid black;"></div>
+    </body>
+    <script>
+        /* 
+            地图主要是可以帮助从宏观的角度快速看出不同地理位置上的差异
+            地图    常用配置
+                缩放拖动    roam
+                名称显示    label
+                初始化缩放比例  zoom
+                地图中心点  center
+
+            常见效果
+                1.加载某个省份的矢量地图数据
+                2.通过registerMap注册到echarts全局对象中
+                3.指明geo配置下的type和map属性
+                4.通过zoom放大该区域
+                5.通过center定位中心点
+
+                将城市空气质量数据设置给series
+                将series下的数据和geo关联起来       geoIndex:0  type:"map"
+                结合visualMap配合使用       min     max     inRange     calculable
+
+            地图和散点图结合
+                给series下增加新的对象
+                散点数据,设置给新对象data
+                配置新对象的 type
+                    type:effectScatter
+                让散点图使用地图坐标
+                    coordinateSystem:"geo"
+                让涟漪的效果更佳明显
+                    rippleEffect:{
+                        scale:10
+                    }
+        */
+       $(function(){
+            var airData =[
+                {name:"北京市",value:39.92},
+                {name:"天津市",value:39.13},
+                {name:"河北省",value:147},
+                {name:"山西省",value:50},
+                {name:"内蒙古自治区",value:84.65},
+                {name:"辽宁省",value:50},
+                {name:"吉林省",value:25},
+                {name:"黑龙江省",value:114},
+                {name:"上海市",value:31.22},
+                {name:"江苏省",value:67},
+                {name:"浙江省",value:84},
+                {name:"安徽省",value:117},
+                {name:"福建省",value:180},
+                {name:"江西省",value:96},
+                {name:"山东省",value:92},
+                {name:"河南省",value:113},
+                {name:"湖北省",value:350},
+                {name:"湖南省",value:30},
+                {name:"广东省",value:90},
+                {name:"广西壮族自治区",value:59},
+                {name:"海南省",value:70.69},
+                {name:"重庆市",value:66},
+                {name:"四川省",value:35.23},
+                {name:"贵州省",value:80.69},
+                {name:"云南省",value:25.04},
+                {name:"西藏自治区",value:45.36},
+                {name:"陕西省",value:120},
+                {name:"甘肃省",value:99},
+                {name:"青海省",value:198},
+                {name:"宁夏回族自治区",value:86.39},
+                {name:"新疆维吾尔自治区",value:84},
+                {name:"台湾省",value:201.33},
+                {name:"香港特别行政区",value:90.92},
+                {name:"澳门特别行政区",value:36}
+            ];
+            var scatterData = [{value:[115.041299,35.768234]}]; //濮阳市经纬度
+            var myCharts = echarts.init(document.querySelector("#map"));
+            myCharts.showLoading();//在获取数据之前,显示加载动画
+            $.ajax({
+                type:"get",
+                url:"./json/China.json",
+                success:function(data){
+                    myCharts.hideLoading();//当服务器数据获取成功之后,隐藏加载动画
+                    console.log(data);
+                    // 在ajax的回调函数中注册地图矢量数据   echarts.registerMap("自定义名字",矢量地图数据)
+                    // 配置geo 的type为'map'    map为'自定义名字'
+                    echarts.registerMap("chinaMap",data);
+                    var option = {
+                        geo:{
+                            type:"map",
+                            map:"chinaMap",      // chinaMap是自定义名字,需要和registerMap中的第一个参数保持一致
+                            roam:true,   // 设置允许缩放以及拖动的效果
+                            label:{
+                                show:true   //展示标签   显示各个省的名字
+                            },
+                            zoom:1,  // 设置初始化缩放比例
+                            // center:[116.405285, 39.904989]  //设置地图中心点的坐标
+
+                            // itemStyle:{
+                            //     normal:{
+                            //         areaColor: '#323c48',  // 绘制的每一个轮廓的背景颜色
+                            //         borderColor: '#111'
+                            //     }
+                            //     /* emphasis: {
+                            //         areaColor: '#2a333d'// 鼠标移到区域时的背景颜色
+                            //     } */
+                            // }
+                        },
+                        series:[
+                            /* {
+                                type:"map",
+                                mapType: 'chinaMap'
+                            } */
+                            {
+                                data:airData,
+                                geoIndex:0,//   将空气质量的数据和第0个geo配置关联在一起
+                                type:"map"
+                            },
+                            {
+                                data:scatterData,   //设置散点图坐标数据
+                                type:"effectScatter",   
+                                coordinateSystem:"geo", // 指明散点使用的坐标系统       geo的坐标系统
+                                rippleEffect:{
+                                    scale:5     // 设置涟漪动画的缩放比例
+                                }
+                            }
+                        ],
+                        visualMap:{ //显示左下角滑块   各个省份显示不同的颜色
+                            min:0,
+                            max:350,
+                            inRange:{
+                                color:["white","red"]   //控制颜色渐变的范围
+                            },
+                            calculable:true     //出现滑块
+                        }
+                    };
+                    myCharts.setOption(option);
+                },
+                error:function(msg){
+                    alert(msg);
+                }
+            })
+            /* $.get("json/China.json",function(ret){
+                // console.log(ret);
+                echarts.registerMap("chinaMap",ret);
+                var option = {
+                    geo:{
+                        type:"map",
+                        map:"chinaMap"
+                    }
+                };
+                myCharts.setOption(option);
+            }) */
+       })
+        
+    </script>
+
+    <script>
+        $(function(){
+            var myCharts = echarts.init(document.querySelector("#henan"));
+            $.get("json/Henan.json",function(ret){
+                console.log(ret);
+                echarts.registerMap("henan",ret);
+                var option = {
+                    geo:{
+                        type:"map",
+                        map:"henan",
+                        roam:true,   // 设置允许缩放以及拖动的效果
+                        label:{
+                            show:true   //展示标签   显示各个省的名字
+                        },
+                        zoom:1,  // 设置初始化缩放比例
+                        center:[113.665412, 34.757975]  //设置地图中心点的坐标   设置郑州为中心
+                    }
+                };
+                myCharts.setOption(option);
+            })
+        })
+        
+    </script>
+</html>
